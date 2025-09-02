@@ -79,8 +79,28 @@ function customizationDataToSelections(customization: SuitCustomizationData): Cu
   return selections;
 }
 
+import { Tax } from '@/types/tax';
+import { createClient } from '@/lib/supabase/client';
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
+
+  useEffect(() => {
+    const fetchTaxes = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('taxes')
+        .select('*')
+        .eq('is_active', true);
+      if (error) {
+        console.error('Failed to fetch taxes:', error);
+      } else {
+        setTaxes(data);
+      }
+    };
+    fetchTaxes();
+  }, []);
 
   useEffect(() => {
     try {
@@ -216,17 +236,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   // Calculate cart summary
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+  const tax_amount = taxes.reduce((totalTax, tax) => {
+    if (tax.type === 'percentage') {
+      return totalTax + (subtotal * tax.rate) / 100;
+    } else {
+      return totalTax + tax.rate;
+    }
+  }, 0);
+
+  const total_amount = subtotal + tax_amount; // Add shipping and subtract discounts later
+
   const cartSummary: CartSummary = {
-    subtotal: cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
-    tax_amount: 0, // Will be calculated based on location
-    shipping_amount: 0, // Will be calculated based on items and location
-    discount_amount: 0, // Will be applied with coupons
-    total_amount: 0,
+    subtotal,
+    tax_amount,
+    shipping_amount: 0,
+    discount_amount: 0,
+    total_amount,
     items_count: cartCount
   };
-  
-  // Calculate total (will include tax and shipping when implemented)
-  cartSummary.total_amount = cartSummary.subtotal + cartSummary.tax_amount + cartSummary.shipping_amount - cartSummary.discount_amount;
 
   const value = {
     cartItems,

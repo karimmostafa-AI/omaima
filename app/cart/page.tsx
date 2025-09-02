@@ -8,12 +8,9 @@ import Link from "next/link"
 import { Trash2 } from "lucide-react"
 
 export default function CartPage() {
-  const { cartItems, updateQuantity, removeFromCart, cartCount } = useCart()
+  const { cartItems, updateQuantity, removeFromCart, cartCount, cartSummary } = useCart()
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  )
+  const { subtotal, tax_amount, total_amount } = cartSummary;
 
   if (cartCount === 0) {
     return (
@@ -73,9 +70,16 @@ export default function CartPage() {
             <h2 className="text-xl font-semibold">Order Summary</h2>
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-bold">${subtotal.toFixed(2)}</span>
+              <span className="font-medium">${subtotal.toFixed(2)}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Shipping and taxes calculated at checkout.</p>
+            <div className="flex justify-between">
+              <span>Taxes</span>
+              <span className="font-medium">${tax_amount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total</span>
+              <span>${total_amount.toFixed(2)}</span>
+            </div>
             <Button size="lg" className="w-full" asChild>
               <Link href="/checkout">Proceed to Checkout</Link>
             </Button>

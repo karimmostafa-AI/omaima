@@ -29,7 +29,7 @@ function CheckoutForm({
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
-  const { cartItems, clearCart } = useCart()
+  const { cartItems, clearCart, cartSummary } = useCart()
 
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -56,7 +56,8 @@ function CheckoutForm({
     const { orderId, error: orderError } = await createOrderInDatabase(
       user.id,
       cartItems,
-      shippingAddress
+      shippingAddress,
+      cartSummary.tax_amount
     )
 
     if (orderError) {

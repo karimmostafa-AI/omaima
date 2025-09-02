@@ -35,20 +35,11 @@ async function getCategoriesForFilter() {
   return data || []
 }
 
-import { AdminGuard } from '@/lib/auth/admin-guard'
-import { AdminLayout } from '@/components/admin/AdminLayout'
-
 export default async function AdminProductsPage() {
   const [products, categories] = await Promise.all([
     getProductsForAdmin(),
     getCategoriesForFilter()
   ])
 
-  return (
-    <AdminGuard requiredPermissions={['manage-products']}>
-      <AdminLayout>
-        <ProductsClient products={products} categories={categories} />
-      </AdminLayout>
-    </AdminGuard>
-  )
+  return <ProductsClient products={products} categories={categories} />
 }

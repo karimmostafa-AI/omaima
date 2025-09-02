@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useMemo, useTransition } from "react"
-import { updateUserRole } from "./actions"
+import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -28,15 +27,11 @@ interface Customer {
   orders?: { count: number }[]
 }
 
-import { Role } from "@/types/role"
-
 interface CustomersClientProps {
   customers: Customer[]
-  roles: Role[]
 }
 
-export default function CustomersClient({ customers, roles }: CustomersClientProps) {
-  const [isPending, startTransition] = useTransition()
+export default function CustomersClient({ customers }: CustomersClientProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [orderFilter, setOrderFilter] = useState<string>("all")
@@ -214,26 +209,9 @@ export default function CustomersClient({ customers, roles }: CustomersClientPro
                       {customer.phone || "Not provided"}
                     </TableCell>
                     <TableCell>
-                      <Select
-                        defaultValue={customer.role_id || undefined}
-                        onValueChange={(roleId) => {
-                          startTransition(() => {
-                            updateUserRole(customer.id, roleId)
-                          })
-                        }}
-                        disabled={isPending}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                              {role.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Badge variant={customer.role === 'admin' ? 'default' : 'secondary'}>
+                        {customer.role || 'customer'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">

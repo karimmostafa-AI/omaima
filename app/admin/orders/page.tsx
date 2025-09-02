@@ -49,17 +49,8 @@ async function getOrdersForAdmin() {
   return ordersWithDetails
 }
 
-import { AdminGuard } from '@/lib/auth/admin-guard'
-import { AdminLayout } from '@/components/admin/AdminLayout'
-
 export default async function AdminOrdersPage() {
   const orders = await getOrdersForAdmin()
 
-  return (
-    <AdminGuard requiredPermissions={['manage-orders']}>
-      <AdminLayout>
-        <OrdersClient orders={orders} />
-      </AdminLayout>
-    </AdminGuard>
-  )
+  return <OrdersClient orders={orders} />
 }

@@ -5,14 +5,11 @@ import { User, Session, AuthError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { UserProfile, Customer, UserRole } from '@/types/user'
 
-import { Permission } from "@/types/role"
-
 interface AuthContextType {
   user: User | null
   session: Session | null
   profile: UserProfile | null
   customer: Customer | null
-  permissions: string[]
   loading: boolean
   error: string | null
   
@@ -33,7 +30,6 @@ interface AuthContextType {
   isAdmin: () => boolean
   isVendor: () => boolean
   isCustomer: () => boolean
-  hasPermission: (permission: string) => boolean
   
   // Profile management
   refreshProfile: () => Promise<void>
@@ -47,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
-  const [permissions, setPermissions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [supabase] = useState(() => createClient())
@@ -95,25 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Fetch user profile with role and permissions
+      // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('users')
-        .select(`
-          *,
-          role:roles (
-            name,
-            permissions ( name )
-          )
-        `)
+        .select('*')
         .eq('id', userId)
         .single()
 
       if (profileError) throw profileError
       setProfile(profileData)
-
-      if (profileData.role) {
-        setPermissions(profileData.role.permissions.map((p: Permission) => p.name))
-      }
 
       // Fetch customer profile if exists
       const { data: customerData } = await supabase
@@ -126,10 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
-  }
-
-  const hasPermission = (permission: string): boolean => {
-    return permissions.includes(permission)
   }
 
   const signUp = async (email: string, password: string, userData?: Partial<UserProfile>) => {
@@ -305,7 +286,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     customer,
-    permissions,
     loading,
     error,
     signUp,
@@ -320,7 +300,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin,
     isVendor,
     isCustomer,
-    hasPermission,
     refreshProfile,
     createCustomerProfile
   }
