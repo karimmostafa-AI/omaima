@@ -19,7 +19,10 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, Package, MapPin, User, Calendar, CreditCard } from "lucide-react"
+import { Eye, Package, MapPin, User, Calendar, CreditCard, Download } from "lucide-react"
+import { useReactToPrint } from "react-to-pdf"
+import { Invoice } from "./invoice"
+import { useRef } from "react"
 
 interface OrderItem {
   id: number
@@ -54,6 +57,11 @@ interface OrderDetailsModalProps {
 
 export function OrderDetailsModal({ order }: OrderDetailsModalProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const invoiceRef = useRef<HTMLDivElement>(null)
+
+  const handlePrint = useReactToPrint({
+    content: () => invoiceRef.current,
+  });
 
   const formatAddress = (address: any) => {
     if (!address) return "No address provided"
@@ -105,11 +113,21 @@ export function OrderDetailsModal({ order }: OrderDetailsModalProps) {
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Order #{order.id.toString().padStart(6, '0')} Details
-          </DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Order #{order.id.toString().padStart(6, '0')} Details
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Download className="h-4 w-4 mr-2" />
+              Download Invoice
+            </Button>
+          </div>
         </DialogHeader>
+
+        <div className="hidden">
+          <Invoice ref={invoiceRef} order={order} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Customer Information */}

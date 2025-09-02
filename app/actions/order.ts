@@ -15,13 +15,15 @@ export interface ShippingAddress {
 export async function createOrderInDatabase(
   userId: string,
   cartItems: CartItem[],
-  shippingAddress: ShippingAddress
+  shippingAddress: ShippingAddress,
+  taxAmount: number
 ): Promise<{ orderId?: number; error?: string }> {
   // Note: In a real app, you might get the Supabase client differently in server actions
   // For this context, let's assume a server client can be created like this.
   const supabase = await createClient()
 
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalPrice = subtotal + taxAmount
 
   try {
     // 1. Create the order
@@ -29,6 +31,8 @@ export async function createOrderInDatabase(
       .from("orders")
       .insert({
         user_id: userId,
+        subtotal: subtotal,
+        tax_amount: taxAmount,
         total_price: totalPrice,
         shipping_address: shippingAddress,
         status: 'pending',

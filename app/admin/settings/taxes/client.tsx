@@ -12,21 +12,22 @@ import {
 } from "@/components/ui/table"
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
-import { Role } from "@/types/role"
+import { Badge } from "@/components/ui/badge"
+import { Tax } from "@/types/tax"
 
-interface RolesClientProps {
-  roles: Role[]
+interface TaxesClientProps {
+  taxes: Tax[]
 }
 
-export default function RolesClient({ roles }: RolesClientProps) {
+export default function TaxesClient({ taxes }: TaxesClientProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Roles</h1>
+        <h1 className="text-2xl font-bold">Taxes</h1>
         <Button asChild>
-          <Link href="/admin/roles/new">
+          <Link href="/admin/settings/taxes/new">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add New Role
+            Add New Tax
           </Link>
         </Button>
       </div>
@@ -36,20 +37,26 @@ export default function RolesClient({ roles }: RolesClientProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Permissions</TableHead>
+              <TableHead>Rate</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roles.map(role => (
-              <TableRow key={role.id}>
-                <TableCell className="font-medium">{role.name}</TableCell>
+            {taxes.map(tax => (
+              <TableRow key={tax.id}>
+                <TableCell className="font-medium">{tax.name}</TableCell>
+                <TableCell>{tax.rate}%</TableCell>
+                <TableCell>{tax.type}</TableCell>
                 <TableCell>
-                  {role.permissions?.map(p => p.name).join(', ')}
+                  <Badge variant={tax.is_active ? 'default' : 'secondary'}>
+                    {tax.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/admin/roles/${role.id}/edit`}>Edit</Link>
+                    <Link href={`/admin/settings/taxes/${tax.id}/edit`}>Edit</Link>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -58,9 +65,9 @@ export default function RolesClient({ roles }: RolesClientProps) {
         </Table>
       </div>
 
-      {roles.length === 0 && (
+      {taxes.length === 0 && (
         <div className="text-center text-muted-foreground py-12">
-          No roles found.
+          No taxes found.
         </div>
       )}
     </div>
