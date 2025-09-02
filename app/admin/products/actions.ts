@@ -13,41 +13,24 @@ function processFormValues(values: ProductFormValues) {
     name: values.name,
     slug: values.slug,
     description: values.description,
-    base_price: values.base_price,
+    price: values.price,
     category_id: values.category_id,
+    stock: values.stock,
     images: typeof values.images === 'string' ? toArray(values.images) : (values.images || []),
     sizes: Array.isArray(values.sizes) ? values.sizes : toArray(values.sizes as string),
     colors: Array.isArray(values.colors) ? values.colors : toArray(values.colors as string),
     color_images: values.color_images || {},
-    variants: values.variants || [],
   }
 }
 
 export async function createProduct(values: ProductFormValues) {
   const supabase = await createClient()
-  const { variants, ...productData } = processFormValues(values)
+  const processedValues = processFormValues(values)
 
-  const { data: newProduct, error: productError } = await supabase
-    .from("products")
-    .insert(productData)
-    .select("id")
-    .single()
+  const { error } = await supabase.from("products").insert(processedValues)
 
-  if (productError) {
-    return { error: productError.message }
-  }
-
-  if (variants.length > 0) {
-    const variantsToInsert = variants.map(variant => ({
-      ...variant,
-      product_id: newProduct.id,
-    }))
-    const { error: variantsError } = await supabase.from("product_variants").insert(variantsToInsert)
-    if (variantsError) {
-      // Optionally, delete the product if variants fail to insert
-      await supabase.from("products").delete().eq("id", newProduct.id)
-      return { error: `Failed to create variants: ${variantsError.message}` }
-    }
+  if (error) {
+    return { error: error.message }
   }
 
   revalidatePath("/admin/products")
@@ -56,30 +39,12 @@ export async function createProduct(values: ProductFormValues) {
 
 export async function updateProduct(id: number, values: ProductFormValues) {
   const supabase = await createClient()
-  const { variants, ...productData } = processFormValues(values)
+  const processedValues = processFormValues(values)
 
-  const { error: productError } = await supabase.from("products").update(productData).eq("id", id)
+  const { error } = await supabase.from("products").update(processedValues).eq("id", id)
 
-  if (productError) {
-    return { error: productError.message }
-  }
-
-  // Delete existing variants
-  const { error: deleteError } = await supabase.from("product_variants").delete().eq("product_id", id)
-  if (deleteError) {
-    return { error: `Failed to update variants (delete step): ${deleteError.message}` }
-  }
-
-  // Insert new variants
-  if (variants.length > 0) {
-    const variantsToInsert = variants.map(variant => ({
-      ...variant,
-      product_id: id,
-    }))
-    const { error: variantsError } = await supabase.from("product_variants").insert(variantsToInsert)
-    if (variantsError) {
-      return { error: `Failed to update variants (insert step): ${variantsError.message}` }
-    }
+  if (error) {
+    return { error: error.message }
   }
 
   revalidatePath("/admin/products")

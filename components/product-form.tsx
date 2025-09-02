@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
@@ -51,27 +51,17 @@ const COLOR_PALETTE = [
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
 
 // Form schema using Zod
-const variantSchema = z.object({
-  id: z.string().optional(),
-  size: z.string(),
-  color: z.string(),
-  price_adjustment: z.coerce.number().default(0),
-  stock: z.coerce.number().int().min(0).default(0),
-  sku: z.string().optional(),
-  is_active: z.boolean().default(true),
-});
-
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   slug: z.string().min(2, "Slug must be at least 2 characters."),
   description: z.string().optional(),
-  base_price: z.coerce.number().positive("Base price must be a positive number."),
+  price: z.coerce.number().positive("Price must be a positive number."),
   category_id: z.coerce.number({ required_error: "Please select a category." }),
+  stock: z.coerce.number().int().min(0, "Stock can't be negative."),
   images: z.string().optional(), // Legacy fallback images
   sizes: z.array(z.string()).default([]),
   colors: z.array(z.string()).default([]),
   color_images: z.record(z.array(z.string())).default({}),
-  variants: z.array(variantSchema).default([]),
 })
 
 export type ProductFormValues = z.infer<typeof formSchema>
@@ -95,8 +85,9 @@ export function ProductForm({ product, categories, onSubmit, isSubmitting }: Pro
       name: product?.name || "",
       slug: product?.slug || "",
       description: product?.description || "",
-      base_price: product?.base_price || 0,
+      price: product?.price || 0,
       category_id: product?.category_id || undefined,
+      stock: product?.stock || 0,
       images: product?.images?.join(", ") || "",
       sizes: product?.sizes || [],
       colors: product?.colors || [],
@@ -104,56 +95,7 @@ export function ProductForm({ product, categories, onSubmit, isSubmitting }: Pro
     },
   })
 
-  const { fields, append, remove, replace } = useFieldArray({
-    control: form.control,
-    name: "variants",
-  });
-
-  const generateVariants = () => {
-    const newVariants = [];
-    for (const color of selectedColors) {
-      for (const size of selectedSizes) {
-        const existingVariant = fields.find(
-          (v) => v.color === color && v.size === size
-        );
-        if (existingVariant) {
-          newVariants.push(existingVariant);
-        } else {
-          newVariants.push({
-            color,
-            size,
-            price_adjustment: 0,
-            stock: 0,
-            sku: "",
-            is_active: true,
-          });
-        }
-      }
-    }
-    replace(newVariants);
-  };
-
   const nameValue = form.watch("name")
-
-  React.useEffect(() => {
-    if (product) {
-      form.reset({
-        name: product.name,
-        slug: product.slug,
-        description: product.description,
-        base_price: product.base_price || 0,
-        category_id: product.category_id,
-        images: product.images?.join(", "),
-        sizes: product.sizes || [],
-        colors: product.colors || [],
-        color_images: product.color_images || {},
-        variants: product.variants || [],
-      });
-      setSelectedColors(product.colors || []);
-      setSelectedSizes(product.sizes || []);
-      setColorImages(product.color_images || {});
-    }
-  }, [product, form]);
 
   React.useEffect(() => {
     if (nameValue && !product) { // Only auto-slug for new products
@@ -289,14 +231,26 @@ export function ProductForm({ product, categories, onSubmit, isSubmitting }: Pro
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="base_price"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Base Price</FormLabel>
+                    <FormLabel>Price</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
-                    <FormDescription>This is the base price. Variants can have price adjustments.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -398,88 +352,6 @@ export function ProductForm({ product, categories, onSubmit, isSubmitting }: Pro
               )}
             </CardContent>
           </Card>
-
-          {/* Variant Generation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Product Variants</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Generate variants based on selected sizes and colors.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Button type="button" onClick={generateVariants} disabled={selectedColors.length === 0 || selectedSizes.length === 0}>
-                Generate Variants
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Variants Table */}
-          {fields.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Generated Variants</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Color</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Price Adj.</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Active</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fields.map((field, index) => (
-                      <TableRow key={field.id}>
-                        <TableCell>{field.color}</TableCell>
-                        <TableCell>{field.size}</TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`variants.${index}.price_adjustment`}
-                            render={({ field }) => (
-                              <Input type="number" step="0.01" {...field} />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`variants.${index}.stock`}
-                            render={({ field }) => (
-                              <Input type="number" {...field} />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`variants.${index}.sku`}
-                            render={({ field }) => (
-                              <Input {...field} />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`variants.${index}.is_active`}
-                            render={({ field }) => (
-                              <input type="checkbox" {...field} checked={field.value} />
-                            )}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Color-Specific Images */}
           {selectedColors.length > 0 && (
