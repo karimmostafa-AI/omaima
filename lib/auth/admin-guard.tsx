@@ -9,16 +9,16 @@ interface AdminGuardProps {
   children: React.ReactNode
   fallback?: React.ReactNode
   redirectTo?: string
-  allowRoles?: ('admin' | 'vendor')[]
+  requiredPermissions?: string[]
 }
 
 export function AdminGuard({ 
   children, 
   fallback,
   redirectTo = '/auth/login?redirect=/admin',
-  allowRoles = ['admin']
+  requiredPermissions = []
 }: AdminGuardProps) {
-  const { user, profile, loading, isAdmin, isVendor } = useAuth()
+  const { user, profile, loading, hasPermission: checkHasPermission } = useAuth()
   const router = useRouter()
   const [isChecking, setIsChecking] = useState(true)
 
@@ -42,18 +42,9 @@ export function AdminGuard({
       }
 
       // Check user role permissions
-      const hasPermission = allowRoles.some(role => {
-        switch (role) {
-          case 'admin':
-            return isAdmin()
-          case 'vendor':
-            return isVendor()
-          default:
-            return false
-        }
-      })
+      const hasRequiredPermissions = requiredPermissions.every(permission => checkHasPermission(permission))
 
-      if (!hasPermission) {
+      if (!hasRequiredPermissions) {
         // Redirect to appropriate page based on user role
         if (profile.role === 'customer') {
           router.push('/account')
@@ -65,7 +56,7 @@ export function AdminGuard({
 
       setIsChecking(false)
     }
-  }, [user, profile, loading, router, redirectTo, allowRoles, isAdmin, isVendor])
+  }, [user, profile, loading, router, redirectTo, requiredPermissions, checkHasPermission])
 
   // Show loading state
   if (loading || isChecking || !profile) {
@@ -80,18 +71,9 @@ export function AdminGuard({
   }
 
   // Check if user has required permissions
-  const hasPermission = allowRoles.some(role => {
-    switch (role) {
-      case 'admin':
-        return isAdmin()
-      case 'vendor':
-        return isVendor()
-      default:
-        return false
-    }
-  })
+  const hasRequiredPermissions = requiredPermissions.every(permission => checkHasPermission(permission))
 
-  if (!hasPermission) {
+  if (!hasRequiredPermissions) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -123,26 +105,16 @@ export function withAdminGuard<T extends object>(
 }
 
 // Hook for checking admin permissions
-export function useAdminAccess(requiredRoles: ('admin' | 'vendor')[] = ['admin']) {
-  const { user, profile, loading, isAdmin, isVendor } = useAuth()
+export function useAdminAccess(requiredPermissions: string[] = []) {
+  const { user, profile, loading, hasPermission } = useAuth()
 
-  const hasAccess = user && profile && requiredRoles.some(role => {
-    switch (role) {
-      case 'admin':
-        return isAdmin()
-      case 'vendor':
-        return isVendor()
-      default:
-        return false
-    }
-  })
+  const hasAccess = user && profile && requiredPermissions.every(permission => hasPermission(permission))
 
   return {
     hasAccess,
     loading,
     user,
     profile,
-    isAdmin: isAdmin(),
-    isVendor: isVendor()
+    hasPermission
   }
 }
