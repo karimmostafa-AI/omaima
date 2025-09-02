@@ -30,21 +30,17 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const { user, profile, error } = await signIn(email, password)
+      const { user, error } = await signIn(email, password)
       
       if (error) {
         setError(error.message)
-        setIsLoading(false)
         return
       }
 
       if (user) {
-        if (profile?.role === 'admin') {
-          router.push('/admin/dashboard')
-        } else {
-          const intendedUrl = new URLSearchParams(window.location.search).get('redirect')
-          router.push(intendedUrl || '/account')
-        }
+        // Redirect based on user role or intended destination
+        const intendedUrl = new URLSearchParams(window.location.search).get('redirect')
+        router.push(intendedUrl || '/account')
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred')

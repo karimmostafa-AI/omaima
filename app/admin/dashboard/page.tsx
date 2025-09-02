@@ -5,6 +5,8 @@ import { DollarSign, Package, ShoppingCart, Users, Clock, User, CreditCard } fro
 import { AdminGuard } from '@/lib/auth/admin-guard'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 
+import { SalesChart } from "@/components/admin/sales-chart"
+
 async function DashboardContent() {
   const supabase = await createClient()
 
@@ -16,7 +18,8 @@ async function DashboardContent() {
     pendingOrdersRes,
     customerCountRes,
     recentOrdersRes,
-    recentCustomersRes
+    recentCustomersRes,
+    salesDataRes
   ] = await Promise.all([
     supabase.from("products").select("*", { count: "exact", head: true }),
     supabase.from("orders").select("*", { count: "exact", head: true }),
@@ -24,7 +27,11 @@ async function DashboardContent() {
     supabase.from("orders").select("total_price").in("status", ["processing", "shipped"]),
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("orders").select("id, total_price, status, created_at, user_id").order("created_at", { ascending: false }).limit(5),
-    supabase.from("profiles").select("first_name, last_name, created_at").order("created_at", { ascending: false }).limit(3)
+    supabase.from("profiles").select("first_name, last_name, created_at").order("created_at", { ascending: false }).limit(3),
+    supabase.rpc('get_daily_sales', {
+      start_date: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
+      end_date: new Date().toISOString()
+    })
   ]);
 
   const productCount = productCountRes.count ?? 0
@@ -134,9 +141,70 @@ async function DashboardContent() {
           </CardContent>
         </Card>
       </div>
-      <div className="mt-8">
+  const salesData = salesDataRes.data || []
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Confirmed Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">${confirmedRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">From delivered orders only</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-500">${pendingRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Processing + shipped orders</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+{orderCount}</div>
+            <p className="text-xs text-muted-foreground">All-time orders placed</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{productCount}</div>
+            <p className="text-xs text-muted-foreground">Active products in store</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+{customerCount}</div>
+            <p className="text-xs text-muted-foreground">Total registered users</p>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="lg:col-span-4">
+          <SalesChart data={salesData.map(d => ({ name: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), total: d.total }))} />
+        </div>
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
               Recent Activity

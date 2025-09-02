@@ -15,7 +15,7 @@ interface AuthContextType {
   
   // Auth methods
   signUp: (email: string, password: string, userData?: Partial<UserProfile>) => Promise<{ user: User | null; error: AuthError | null }>
-  signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; profile: UserProfile | null; error: AuthError | null }>
+  signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
   updatePassword: (password: string) => Promise<{ error: AuthError | null }>
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signIn = async (email: string, password: string): Promise<{ user: User | null; session: Session | null; profile: UserProfile | null; error: AuthError | null }> => {
+  const signIn = async (email: string, password: string) => {
     setLoading(true)
     setError(null)
     
@@ -168,28 +168,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (error) throw error
-      if (!data.user) throw new Error("Sign in completed but no user data returned.")
-
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single()
-
-      if (profileError) {
-        console.error('Error fetching user profile after signin:', profileError)
-        // still return user data, but profile will be null
-        return { user: data.user, session: data.session, profile: null, error: null }
-      }
-
-      setProfile(profileData) // update context state
-
-      // Return user, session, and the fetched profile
-      return { user: data.user, session: data.session, profile: profileData, error: null }
+      return { user: data.user, session: data.session, error }
     } catch (error: any) {
       setError(error.message)
-      return { user: null, session: null, profile: null, error }
+      return { user: null, session: null, error }
     } finally {
       setLoading(false)
     }

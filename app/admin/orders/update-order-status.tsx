@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select"
 import { updateOrderStatus } from "./actions"
 
-type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'ready_for_pickup' | 'on_the_way' | 'delivered' | 'cancelled' | 'returned'
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'canceled'
 
 export function UpdateOrderStatus({
   orderId,
@@ -20,7 +20,7 @@ export function UpdateOrderStatus({
   currentStatus: OrderStatus
 }) {
   const [isPending, startTransition] = useTransition()
-  const statuses: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'ready_for_pickup', 'on_the_way', 'delivered', 'cancelled', 'returned']
+  const statuses: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'canceled']
 
   const onStatusChange = (newStatus: OrderStatus) => {
     startTransition(async () => {
