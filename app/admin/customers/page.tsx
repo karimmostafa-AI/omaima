@@ -43,13 +43,28 @@ async function getCustomersForAdmin() {
   return customersWithOrders
 }
 
+import { Role } from "@/types/role"
+
+async function getRoles(): Promise<Role[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("roles").select("*")
+  if (error) {
+    console.error("Error fetching roles:", error)
+    return []
+  }
+  return data
+}
+
 export default async function CustomersPage() {
-  const customers = await getCustomersForAdmin()
+  const [customers, roles] = await Promise.all([
+    getCustomersForAdmin(),
+    getRoles(),
+  ])
 
   return (
-    <AdminGuard>
+    <AdminGuard requiredPermissions={['manage-customers']}>
       <AdminLayout>
-        <CustomersClient customers={customers} />
+        <CustomersClient customers={customers} roles={roles} />
       </AdminLayout>
     </AdminGuard>
   )

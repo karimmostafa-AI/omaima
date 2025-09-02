@@ -274,7 +274,7 @@ async function DashboardContent() {
 
 export default function AdminDashboard() {
   return (
-    <AdminGuard>
+    <AdminGuard requiredPermissions={['view-dashboard']}>
       <AdminLayout>
         <DashboardContent />
       </AdminLayout>
