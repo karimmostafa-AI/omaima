@@ -7,8 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Create enum types
 CREATE TYPE order_status AS ENUM (
-    'pending', 'confirmed', 'processing', 'ready_for_pickup', 
-    'on_the_way', 'delivered', 'cancelled', 'returned'
+    'pending', 'confirmed', 'processing', 'shipped', 'ready_for_pickup', 'on_the_way', 'delivered', 'cancelled', 'returned'
 );
 
 CREATE TYPE payment_status AS ENUM (

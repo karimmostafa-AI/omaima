@@ -4,12 +4,12 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 // This should match the enum in the database migration
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'canceled'
+type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'ready_for_pickup' | 'on_the_way' | 'delivered' | 'cancelled' | 'returned'
 
 export async function updateOrderStatus(orderId: number, newStatus: OrderStatus) {
   const supabase = await createClient()
 
-  const allowedStatuses: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'canceled']
+  const allowedStatuses: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'ready_for_pickup', 'on_the_way', 'delivered', 'cancelled', 'returned']
   if (!allowedStatuses.includes(newStatus)) {
     return { error: "Invalid status value." }
   }

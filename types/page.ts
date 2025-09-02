@@ -1,5 +1,6 @@
 import { PageBuilderData } from './page-builder'
 
+// The Page type is used for both static pages and the page builder.
 export interface Page {
   id: number
   title: string
