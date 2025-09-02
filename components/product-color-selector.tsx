@@ -31,12 +31,23 @@ interface ProductColorSelectorProps {
   onSizeChange?: (size: string) => void
 }
 
+import { ProductVariant } from "@/types/product"
+
 export function ProductColorSelector({ product, onColorChange, onSizeChange }: ProductColorSelectorProps) {
   const [selectedColor, setSelectedColor] = React.useState<string>(product.colors?.[0] || "")
   const [selectedSize, setSelectedSize] = React.useState<string>(product.sizes?.[0] || "")
+  const [selectedVariant, setSelectedVariant] = React.useState<ProductVariant | null>(null)
   const [currentImages, setCurrentImages] = React.useState<string[]>([])
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
   const [selectedImageIndex, setSelectedImageIndex] = React.useState(0)
+
+  // Find the selected variant
+  React.useEffect(() => {
+    const variant = product.variants?.find(
+      (v) => v.color?.name === selectedColor && v.size?.name === selectedSize
+    )
+    setSelectedVariant(variant || null)
+  }, [selectedColor, selectedSize, product.variants])
 
   // Update images when color changes
   React.useEffect(() => {
@@ -166,7 +177,9 @@ export function ProductColorSelector({ product, onColorChange, onSizeChange }: P
               {product.name}
             </h1>
             <div className="flex items-center gap-4">
-              <p className="text-3xl font-bold text-foreground">${product.price}</p>
+              <p className="text-3xl font-bold text-foreground">
+                ${selectedVariant ? (product.price + selectedVariant.price_adjustment).toFixed(2) : product.price}
+              </p>
               {selectedColor && (
                 <Badge variant="secondary" className="flex items-center gap-2">
                   <div 
@@ -244,6 +257,7 @@ export function ProductColorSelector({ product, onColorChange, onSizeChange }: P
                   size="lg"
                   onClick={() => handleSizeSelect(size)}
                   className="min-w-[60px] h-12"
+                  disabled={!product.variants?.some(v => v.size?.name === size && v.is_active)}
                 >
                   {size}
                 </Button>
@@ -254,7 +268,11 @@ export function ProductColorSelector({ product, onColorChange, onSizeChange }: P
 
         {/* Add to Cart Button */}
         <div className="pt-6">
-          <AddToCartButton product={product} />
+          <AddToCartButton
+            product={product}
+            variant={selectedVariant}
+            disabled={!selectedVariant || selectedVariant.stock_quantity === 0}
+          />
         </div>
       </div>
     </>

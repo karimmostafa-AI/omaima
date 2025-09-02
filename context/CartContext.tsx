@@ -5,9 +5,11 @@ import { Product } from '@/types/product';
 import { CartItem, CustomizationSelection, CartSummary } from '@/types/cart';
 import { SuitCustomizationData } from '@/types/customization';
 
+import { ProductVariant } from "@/types/product";
+
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, quantity?: number, customization?: CustomizationSelection[]) => void;
+  addToCart: (product: Product, variant?: ProductVariant | null, quantity?: number, customization?: CustomizationSelection[]) => void;
   addCustomizedToCart: (product: Product, customization: SuitCustomizationData, price: number) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -27,7 +29,7 @@ export function useCart() {
 }
 
 // Helper function to generate unique cart item ID
-function generateCartItemId(productId: string, variantId?: string, hasCustomization?: boolean): string {
+function generateCartItemId(productId: string, variantId?: string | null, hasCustomization?: boolean): string {
   const base = variantId ? `${productId}-${variantId}` : productId;
   return hasCustomization ? `${base}-custom-${Date.now()}` : base;
 }
@@ -131,8 +133,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('omaima-cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product: Product, quantity: number = 1, customization?: CustomizationSelection[]) => {
-    const itemId = generateCartItemId(product.id, undefined, !!customization);
+  const addToCart = (product: Product, variant: ProductVariant | null = null, quantity: number = 1, customization?: CustomizationSelection[]) => {
+    const itemId = generateCartItemId(product.id, variant?.id, !!customization);
     
     setCartItems(prevItems => {
       // For customized items, always create a new entry
@@ -141,6 +143,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           id: itemId,
           customer_id: 'guest', // Will be updated when user logs in
           product_id: product.id,
+          product_variant_id: variant?.id,
           quantity,
           customization_data: customization,
           created_at: new Date().toISOString(),
@@ -150,25 +153,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return [...prevItems, newItem];
       }
       
-      // For regular items, check if it already exists
-      const existingItem = prevItems.find(item => 
-        item.product_id === product.id && 
-        !item.customization_data?.length
-      );
-      
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === existingItem.id
-            ? { ...item, quantity: item.quantity + quantity, updated_at: new Date().toISOString() }
-            : item
+      // For items with variants, check if the specific variant already exists
+      if (variant) {
+        const existingItem = prevItems.find(item => item.product_variant_id === variant.id);
+        if (existingItem) {
+          return prevItems.map(item =>
+            item.id === existingItem.id
+              ? { ...item, quantity: item.quantity + quantity, updated_at: new Date().toISOString() }
+              : item
+          );
+        }
+      } else {
+        // For regular items without variants, check if it already exists
+        const existingItem = prevItems.find(item =>
+          item.product_id === product.id &&
+          !item.product_variant_id &&
+          !item.customization_data?.length
         );
+        if (existingItem) {
+          return prevItems.map(item =>
+            item.id === existingItem.id
+              ? { ...item, quantity: item.quantity + quantity, updated_at: new Date().toISOString() }
+              : item
+          );
+        }
       }
       
-      // Create new regular item
+      // Create new item
       const newItem: CartItem = {
         id: itemId,
         customer_id: 'guest',
         product_id: product.id,
+        product_variant_id: variant?.id,
         quantity,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
