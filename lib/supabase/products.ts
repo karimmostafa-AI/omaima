@@ -263,6 +263,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         category:categories (
           name,
           slug
+        ),
+        variants:product_variants (
+          id,
+          sku,
+          price_adjustment,
+          stock_quantity,
+          images,
+          is_active,
+          color:colors (id, name, hex_code),
+          size:sizes (id, name, category, measurements),
+          material:materials (id, name, description, composition, price_modifier)
         )
       `)
       .eq("slug", slug)
