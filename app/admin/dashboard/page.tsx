@@ -4,13 +4,11 @@ import { Badge } from "@/components/ui/badge"
 import { DollarSign, Package, ShoppingCart, Users, Clock, User, CreditCard } from "lucide-react"
 import { AdminGuard } from '@/lib/auth/admin-guard'
 import { AdminLayout } from '@/components/admin/AdminLayout'
-
 import { SalesChart } from "@/components/admin/sales-chart"
 
 async function DashboardContent() {
   const supabase = await createClient()
 
-  // Parallelize the database calls for efficiency
   const [
     productCountRes,
     orderCountRes,
@@ -48,11 +46,9 @@ async function DashboardContent() {
     
   const totalRevenue = confirmedRevenue + pendingRevenue
 
-  // Process recent activity data
   const recentOrders = recentOrdersRes.data || []
   const recentCustomers = recentCustomersRes.data || []
 
-  // Get customer names for recent orders
   const orderUserIds = recentOrders.map(order => order.user_id).filter(Boolean)
   const { data: orderCustomers } = await supabase
     .from("profiles")
@@ -64,7 +60,6 @@ async function DashboardContent() {
     customerMap.set(customer.id, `${customer.first_name} ${customer.last_name}`)
   })
 
-  // Combine and sort recent activities
   const recentActivities = [
     ...recentOrders.map(order => ({
       type: 'order' as const,
@@ -86,61 +81,6 @@ async function DashboardContent() {
     }))
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 8)
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">${confirmedRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">From delivered orders only</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">${pendingRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Processing + shipped orders</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+{orderCount}</div>
-            <p className="text-xs text-muted-foreground">All-time orders placed</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{productCount}</div>
-            <p className="text-xs text-muted-foreground">Active products in store</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+{customerCount}</div>
-            <p className="text-xs text-muted-foreground">Total registered users</p>
-          </CardContent>
-        </Card>
-      </div>
   const salesData = salesDataRes.data || []
 
   return (
