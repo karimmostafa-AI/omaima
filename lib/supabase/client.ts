@@ -1,13 +1,55 @@
 import { createBrowserClient } from "@supabase/ssr"
 
+let cachedClient: any = null
+
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // Check if environment variables are properly configured
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your_supabase') || supabaseAnonKey.includes('your_supabase')) {
-    throw new Error('Supabase configuration is missing or incomplete. Please check your environment variables.')
+    console.warn('Supabase configuration is missing or incomplete. Running in demo mode.')
+    
+    // Return a mock client for demo mode
+    if (!cachedClient) {
+      cachedClient = {
+        auth: {
+          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signUp: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+          signInWithPassword: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+          signOut: () => Promise.resolve({ error: null }),
+          resetPasswordForEmail: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+          updateUser: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+          signInWithOAuth: () => Promise.resolve({ error: { message: 'Supabase not configured' } })
+        },
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+            })
+          }),
+          insert: () => ({
+            select: () => ({
+              single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+            })
+          }),
+          update: () => ({
+            eq: () => ({
+              select: () => ({
+                single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+              })
+            })
+          })
+        })
+      }
+    }
+    
+    return cachedClient
   }
+
+  // If properly configured, create real Supabase client
 
   const client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {

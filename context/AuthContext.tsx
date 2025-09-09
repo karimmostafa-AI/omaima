@@ -50,7 +50,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [supabase] = useState(() => createClient())
+  const [supabase] = useState(() => {
+    try {
+      return createClient()
+    } catch (error) {
+      console.warn('Supabase not configured, running in demo mode')
+      // Return a mock client that doesn't throw errors
+      return {
+        auth: {
+          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signUp: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+          signInWithPassword: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+          signOut: () => Promise.resolve({ error: null }),
+          resetPasswordForEmail: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+          updateUser: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+          signInWithOAuth: () => Promise.resolve({ error: { message: 'Supabase not configured' } })
+        },
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+            })
+          }),
+          insert: () => ({
+            select: () => ({
+              single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+            })
+          }),
+          update: () => ({
+            eq: () => ({
+              select: () => ({
+                single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+              })
+            })
+          })
+        })
+      }
+    }
+  })
 
   // Initialize auth state
   useEffect(() => {
@@ -85,9 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         await fetchUserProfile(session.user.id)
       }
-    } catch (error) {
-      console.error('Auth initialization error:', error)
-      setError('Failed to initialize authentication')
+    } catch (error: any) {
+      if (error?.message?.includes('Supabase not configured')) {
+        console.warn('Supabase not configured, running in demo mode')
+        // Don't set this as an error in demo mode
+      } else {
+        console.error('Auth initialization error:', error)
+        setError('Failed to initialize authentication')
+      }
     } finally {
       setLoading(false)
     }

@@ -1,4 +1,28 @@
-export type UserRole = 'customer' | 'admin' | 'shop_owner' | 'staff';
+export type UserRole = 'customer' | 'admin' | 'vendor' | 'staff';
+
+// UserProfile extends User and aligns with database schema
+export interface UserProfile {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  role: UserRole;
+  role_id?: string;
+  is_active: boolean;
+  email_verified: boolean;
+  phone_verified: boolean;
+  last_online?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  // Include role data if joined
+  role?: {
+    name: string;
+    permissions: { name: string }[];
+  };
+}
 
 export interface User {
   id: string;
@@ -20,14 +44,20 @@ export interface User {
 export interface Customer {
   id: string;
   user_id: string;
-  date_of_birth?: string;
-  gender: string;
-  preferences?: Record<string, any>;
-  measurements?: Record<string, any>;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  preferences: Record<string, any>;
+  measurements: Record<string, any>;
+  newsletter_subscribed: boolean;
+  marketing_consent: boolean;
   created_at: string;
   updated_at: string;
   // Relations
-  user?: User;
+  user?: UserProfile;
 }
 
 export interface Address {
